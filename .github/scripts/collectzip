@@ -1,0 +1,23 @@
+#!/bin/sh
+set -eux
+
+echo "Initial Setup"
+export BASELOC="$PWD/superconfigure"
+export COSMO="$BASELOC"/cosmopolitan
+export RESULTS="$BASELOC"/results
+
+# zip them up
+echo "zip file with actually portable executables"
+cd "$RESULTS"
+
+# rename to remove .com extension
+for COMFILE in $(find . -name "*.com"); do
+    NEWFILE="${COMFILE%.*}"
+    mv "$COMFILE" "$NEWFILE"
+done
+
+ZFILE="$BASELOC/${ZFILENAME:-extras}.zip"
+zip --symlinks "$ZFILE" $(find . -name "*" | grep -v "\.x86" | grep -v "\.aarch64")
+
+ZFILE="$BASELOC/${ZFILENAME:-extras}-dbg.zip"
+zip --symlinks "$ZFILE" $(find . -name "*" -type f)

@@ -1,0 +1,47 @@
+on:
+  workflow_dispatch:
+  push:
+  create:
+  release:
+    types: [created]
+
+name: Handle Release
+jobs:
+  generate:
+    if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        result: [aarch64-gcc, x86_64-gcc, cli, llvm]
+    name: ${{ matrix.result }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@master
+      - name: support ape bins and SSL things
+        run: bash ./.github/scripts/setup
+      - name: Get tag
+        id: get-tag
+        run: |
+          cd superconfigure/cosmopolitan
+          echo "TAG=$(git describe --tags)" >> "$GITHUB_OUTPUT"
+          cd ../..
+      - name: build Cosmo
+        run: bash ./.github/scripts/cosmo
+      - name: build ${{ matrix.result }}
+        env:
+          COLLECTION: ${{ matrix.result }}
+        run: bash ./.github/scripts/collectbuild ${{ matrix.result }}
+      - name: collect into zip
+        env:
+          ZFILENAME: ${{ matrix.result }}
+        run: bash ./.github/scripts/collectzip
+      - name: Upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ steps.get-tag.outputs.TAG }}"
+          files: "./${{ matrix.result }}*.zip"
+          fail_on_unmatched_files: true
+          prerelease: true

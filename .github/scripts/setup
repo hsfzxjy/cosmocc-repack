@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -x
+
+# update?
+sudo apt update
+
+# ssl certs
+sudo apt-get install -y ca-certificates libssl-dev \
+    qemu-user qemu-system-x86 qemu-system-arm qemu-utils qemu-user-static \
+    texinfo groff libtool \
+    cmake ninja-build bison zip \
+    pkg-config build-essential autoconf re2c
+
+# the zip folder
+sudo mkdir -p /zip
+sudo chmod -R 0777 /zip
+
+# the actual build folder
+# sudo mkdir -p /workdir
+# sudo chmod -R 0777 /workdir
+
+# cd "$GITHUB_WORKSPACE" || exit
+# cd ../
+# cp -r superconfigure /workdir
+# cd /workdir/superconfigure || exit
+
+# the superconfigure folder
+git clone -b z0.0.60 --depth 1 https://github.com/ahgamut/superconfigure.git
+cd superconfigure
+
+# cosmo
+# git clone https://github.com/jart/cosmopolitan --depth=1
+COSMO_HASH=e7e5856b8312c9d34de67b40cd6b8522ae33ced9
+git clone https://github.com/hsfzxjy/cosmopolitan.git
+cd cosmopolitan
+git remote add upstream https://github.com/jart/cosmopolitan.git
+git fetch upstream --tags
+
+# mkdir -p cosmopolitan && cd cosmopolitan
+# git init
+# git remote add --no-tags remote https://github.com/hsfzxjy/cosmopolitan
+# git fetch --depth 1 --no-write-fetch-head remote "$COSMO_HASH"
+git checkout "$COSMO_HASH"
+
+sudo cp build/bootstrap/ape.elf /usr/bin/ape
+sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+sudo sh -c "echo ':APE-jart:M::jartsr::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+sudo sh -c "echo ':qemu-aarch64:M::\x7fELF\x02\x01\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x02\x00\xb7\x00:\xff\xff\xff\xff\xff\xff\xff\x00\xff\xff\xff\xff\xff\xff\xff\xff\xfe\xff\xff\xff:/usr/bin/qemu-aarch64:CF' >/proc/sys/fs/binfmt_misc/register"
+
+ls /proc/sys/fs/binfmt_misc/
