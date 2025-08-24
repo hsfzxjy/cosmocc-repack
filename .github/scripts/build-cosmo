@@ -15,7 +15,7 @@ fi
 
 cd superconfigure/cosmopolitan
 
-python3 - >tool/cosmocc/package.sh <<EOF
+python3 - >tool/cosmocc/package.sh.tmp <<EOF
 import re
 hashes = {
   'aarch64-gcc.zip': '580076b885b469a0e819dc6ee37aa2dfae3ec1db7d864c406ad813fc4297996c',
@@ -32,5 +32,7 @@ for filename, sha256 in hashes.items():
 print(content)
 EOF
 
-mkdir cosmocc
-bash tool/cosmocc/package.sh cosmocc
+cat tool/cosmocc/package.sh.tmp
+
+mkdir cosmocc -p
+bash tool/cosmocc/package.sh.tmp cosmocc
