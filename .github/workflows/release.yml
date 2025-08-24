@@ -35,7 +35,7 @@ jobs:
         run: |
           RESULT=false
           if gh release view "${{ steps.get-tag.outputs.TAG }}"; then
-            RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="${{ matrix.result }}.zip"'`
+            RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="${{ matrix.result }}.zip")'`
           fi
           echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
       - name: support ape bins and SSL things
