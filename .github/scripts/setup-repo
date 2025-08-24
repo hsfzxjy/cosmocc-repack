@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -x
+
+git clone -b z0.0.60 --depth 1 https://github.com/ahgamut/superconfigure.git
+cd superconfigure
+
+# cosmo
+COSMO_HASH=e7e5856b8312c9d34de67b40cd6b8522ae33ced9
+git clone https://github.com/hsfzxjy/cosmopolitan.git
+cd cosmopolitan
+git remote add upstream https://github.com/jart/cosmopolitan.git
+git fetch upstream --tags
+
+git checkout "$COSMO_HASH"

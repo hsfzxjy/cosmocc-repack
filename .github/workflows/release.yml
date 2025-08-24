@@ -20,8 +20,8 @@ jobs:
     steps:
       - name: Checkout the repository
         uses: actions/checkout@master
-      - name: support ape bins and SSL things
-        run: bash ./.github/scripts/setup
+      - name: setup repo
+        run: bash ./.github/scripts/setup-repo
       - name: Get tag
         id: get-tag
         run: |
@@ -38,6 +38,9 @@ jobs:
             RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="${{ matrix.result }}.zip"'`
           fi
           echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
+      - name: support ape bins and SSL things
+        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        run: bash ./.github/scripts/setup
       - name: build Cosmo
         run: bash ./.github/scripts/cosmo
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
