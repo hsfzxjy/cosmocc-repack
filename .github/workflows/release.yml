@@ -28,17 +28,26 @@ jobs:
           cd superconfigure/cosmopolitan
           echo "TAG=$(git describe --tags)" >> "$GITHUB_OUTPUT"
           cd ../..
+      - name: Check release file exists
+        id: check-release-file-exists
+        run: |
+          HAS_RELEASE_FILE=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="${{ matrix.result }}.zip"'`
+          echo "HAS_RELEASE_FILE=${HAS_RELEASE_FILE}" > "$GITHUB_OUTPUT"
       - name: build Cosmo
         run: bash ./.github/scripts/cosmo
+        if: ${{ steps.get-tag.outputs.TAG != '' && steps.check-release-file-exists.outputs.HAS_RELEASE_FILE != 'true' }}
       - name: build ${{ matrix.result }}
+        if: ${{ steps.get-tag.outputs.TAG != '' && steps.check-release-file-exists.outputs.HAS_RELEASE_FILE != 'true' }}
         env:
           COLLECTION: ${{ matrix.result }}
         run: bash ./.github/scripts/collectbuild ${{ matrix.result }}
       - name: collect into zip
+        if: ${{ steps.get-tag.outputs.TAG != '' && steps.check-release-file-exists.outputs.HAS_RELEASE_FILE != 'true' }}
         env:
           ZFILENAME: ${{ matrix.result }}
         run: bash ./.github/scripts/collectzip
       - name: Upload binaries to release
+        if: ${{ steps.get-tag.outputs.TAG != '' && steps.check-release-file-exists.outputs.HAS_RELEASE_FILE != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.get-tag.outputs.TAG }}"
