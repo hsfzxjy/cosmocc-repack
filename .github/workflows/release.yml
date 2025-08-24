@@ -7,6 +7,51 @@ on:
 
 name: Handle Release
 jobs:
+  generate-cosmocc:
+    needs: generate
+    if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@master
+      - name: setup repo
+        run: bash ./.github/scripts/setup-repo
+      - name: Get tag
+        id: get-tag
+        run: |
+          cd superconfigure/cosmopolitan
+          echo "TAG=$(git describe --tags)" >> "$GITHUB_OUTPUT"
+          cd ../..
+      - name: Check release file exists
+        id: check-release-file-exists
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RESULT=false
+          if gh release view "${{ steps.get-tag.outputs.TAG }}"; then
+            RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="cosmocc.zip")'`
+          fi
+          echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
+      - name: support ape bins and SSL things
+        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        run: bash ./.github/scripts/setup
+      - name: build Cosmo
+        run: bash ./.github/scripts/build-cosmo
+        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+      - name: zip
+        run: |
+          cd superconfigure/cosmopolitan
+          zip -r cosmocc.zip cosmocc/
+      - name: Upload binaries to release
+        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ steps.get-tag.outputs.TAG }}"
+          files: "superconfigure/cosmopolitan/cosmocc.zip"
+          fail_on_unmatched_files: true
+          prerelease: true
   generate:
     if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
     runs-on: ubuntu-latest

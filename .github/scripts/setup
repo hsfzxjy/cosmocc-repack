@@ -15,32 +15,7 @@ sudo apt-get install -y ca-certificates libssl-dev \
 sudo mkdir -p /zip
 sudo chmod -R 0777 /zip
 
-# the actual build folder
-# sudo mkdir -p /workdir
-# sudo chmod -R 0777 /workdir
-
-# cd "$GITHUB_WORKSPACE" || exit
-# cd ../
-# cp -r superconfigure /workdir
-# cd /workdir/superconfigure || exit
-
-# the superconfigure folder
-git clone -b z0.0.60 --depth 1 https://github.com/ahgamut/superconfigure.git
-cd superconfigure
-
-# cosmo
-# git clone https://github.com/jart/cosmopolitan --depth=1
-COSMO_HASH=e7e5856b8312c9d34de67b40cd6b8522ae33ced9
-git clone https://github.com/hsfzxjy/cosmopolitan.git
-cd cosmopolitan
-git remote add upstream https://github.com/jart/cosmopolitan.git
-git fetch upstream --tags
-
-# mkdir -p cosmopolitan && cd cosmopolitan
-# git init
-# git remote add --no-tags remote https://github.com/hsfzxjy/cosmopolitan
-# git fetch --depth 1 --no-write-fetch-head remote "$COSMO_HASH"
-git checkout "$COSMO_HASH"
+cd superconfigure/cosmopolitan
 
 sudo cp build/bootstrap/ape.elf /usr/bin/ape
 sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
