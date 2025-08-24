@@ -15,7 +15,7 @@ fi
 
 cd superconfigure/cosmopolitan
 
-python3 - <<EOF
+python3 - >tool/cosmocc/package.sh <<EOF
 import re
 hashes = {
   'aarch64-gcc.zip': '580076b885b469a0e819dc6ee37aa2dfae3ec1db7d864c406ad813fc4297996c',
@@ -30,7 +30,7 @@ for filename, sha256 in hashes.items():
   replacement = f'fetch https://github.com/hsfzxjy/cosmocc-repack/releases/download/4.0.2-28-ge7e5856b8/{filename} {sha256} &'
   content = pattern.sub(replacement, content)
 print(content)
-EOF > tool/cosmocc/package.sh
+EOF
 
 mkdir cosmocc
 bash tool/cosmocc/package.sh cosmocc
