@@ -1,0 +1,20 @@
+#!/bin/bash
+
+ROOT=$(dirname `realpath $0`)/../..
+source "$ROOT/configs/default"
+
+SCTAG=$(cd "$ROOT/superconfigure" && git describe --tags "$SC_REF")
+COSMOTAG=$(cd "$ROOT/superconfigure/cosmopolitan" && git describe --tags "$COSMO_REF")
+
+case $1 in
+"sc")
+  echo "superconfigure_${SCTAG}_${COSMOTAG}"
+  ;;
+"cosmo")
+  echo "cosmocc_${COSMOTAG}_${SCTAG}"
+  ;;
+*)
+  echo "unknown tag format $1"
+  exit 1
+  ;;
+esac
