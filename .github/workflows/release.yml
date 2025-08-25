@@ -103,6 +103,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.get-tag.outputs.TAG }}"
-          files: "./${{ matrix.result }}*.zip"
+          files: "superconfigure/${{ matrix.result }}*.zip"
           fail_on_unmatched_files: true
           prerelease: true
