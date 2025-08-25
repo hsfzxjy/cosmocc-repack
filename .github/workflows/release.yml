@@ -32,18 +32,52 @@ jobs:
           if gh release view "${{ steps.get-tag.outputs.TAG }}"; then
             RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="cosmocc.zip")'`
           fi
+          RESULT=false
           echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
-      - name: support ape bins and SSL things
+      - name: setup ape
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
-        run: bash ./.github/scripts/setup
+        run: |
+          sudo cp -a superconfigure/cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
+          sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+          sudo apt install -y git-restore-mtime
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: |
+            superconfigure/cosmopolitan/.cosmocc
+            superconfigure/cosmopolitan/o
+          key: cosmocc-build-artifacts
+          restore-keys: |
+            cosmocc-build-artifacts
+      - if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+          (
+            cd superconfigure/cosmopolitan
+            git restore-mtime
+            while read mtime file; do
+              [ -f "$file" ] && touch -d "@$mtime" "$file"
+            done < o/.mtimes
+          )
       - name: build Cosmo
         run: bash ./.github/scripts/build-cosmo
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+      - name: Save mtimes
+        run: |
+          (
+            cd superconfigure/cosmopolitan
+            find o -type f -exec stat -c "%Y %n" {} \; > o/.mtimes
+          )
       - name: zip
         run: |
           cd superconfigure/cosmopolitan
           find cosmocc -exec touch -d "1970-01-01 00:00+0000" -a -m {} \;
           zip -X --symlinks -r cosmocc.zip cosmocc/
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            superconfigure/cosmopolitan/.cosmocc
+            superconfigure/cosmopolitan/o
+          key: cosmocc-build-artifacts
       - name: Upload binaries to release
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
         uses: softprops/action-gh-release@v2
