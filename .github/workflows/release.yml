@@ -21,8 +21,7 @@ jobs:
       - name: Get tag
         id: get-tag
         run: |
-          cd superconfigure/cosmopolitan
-          echo "TAG=$(git describe --tags)" >> "$GITHUB_OUTPUT"
+          echo "TAG=$(bash .github/scripts/format-tag cosmo)" >> "$GITHUB_OUTPUT"
           cd ../..
       - name: Check release file exists
         id: check-release-file-exists
@@ -43,7 +42,8 @@ jobs:
       - name: zip
         run: |
           cd superconfigure/cosmopolitan
-          zip -r cosmocc.zip cosmocc/
+          find cosmocc -exec touch -d "1970-01-01 00:00+0000" -a -m {} \;
+          zip -X --symlinks -r cosmocc.zip cosmocc/
       - name: Upload binaries to release
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
         uses: softprops/action-gh-release@v2
@@ -70,8 +70,7 @@ jobs:
       - name: Get tag
         id: get-tag
         run: |
-          cd superconfigure/cosmopolitan
-          echo "TAG=$(git describe --tags)" >> "$GITHUB_OUTPUT"
+          echo "TAG=$(bash .github/scripts/format-tag sc)" >> "$GITHUB_OUTPUT"
           cd ../..
       - name: Check release file exists
         id: check-release-file-exists

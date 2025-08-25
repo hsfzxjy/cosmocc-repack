@@ -16,8 +16,12 @@ for COMFILE in $(find . -name "*.com"); do
     mv "$COMFILE" "$NEWFILE"
 done
 
+for FILE in $(find .); do
+    touch -d "1970-01-01 00:00+0000" -a -m "$FILE"
+done
+
 ZFILE="$BASELOC/${ZFILENAME:-extras}.zip"
-zip --symlinks "$ZFILE" $(find . -name "*" | grep -v "\.x86" | grep -v "\.aarch64")
+zip -X --symlinks "$ZFILE" $(find . -name "*" | grep -v "\.x86" | grep -v "\.aarch64")
 
 ZFILE="$BASELOC/${ZFILENAME:-extras}-dbg.zip"
-zip --symlinks "$ZFILE" $(find . -name "*" -type f)
+zip -X --symlinks "$ZFILE" $(find . -name "*" -type f)
