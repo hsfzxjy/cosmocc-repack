@@ -7,8 +7,7 @@ on:
 
 name: Handle Release
 jobs:
-  generate-cosmocc:
-    needs: generate
+  build-cosmocc:
     if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
     runs-on: ubuntu-latest
     permissions:
@@ -91,8 +90,8 @@ jobs:
           fail_on_unmatched_files: true
           prerelease: true
 
-  generate:
-    if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
+  build-superconfigure:
+    if: "${{ ( github.event_name != 'push' ) || contains(github.event.head_commit.message, '[[release-sc]]') }}"
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -102,17 +101,19 @@ jobs:
         result: [aarch64-gcc, x86_64-gcc, cli, llvm]
     name: ${{ matrix.result }}
     steps:
-      - name: Checkout the repository
+      - name: checkout the repository
         uses: actions/checkout@master
+
       - name: setup repo
         run: bash ./.github/scripts/setup-repo
-      - name: Get tag
+
+      - name: get tag
         id: get-tag
         run: |
           echo "TAG=$(bash .github/scripts/format-tag sc)" >> "$GITHUB_OUTPUT"
-          cd ../..
-      - name: Check release file exists
-        id: check-release-file-exists
+
+      - name: check release file exists
+        id: release-exists
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -121,24 +122,29 @@ jobs:
             RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="${{ matrix.result }}.zip")'`
           fi
           echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
+
       - name: support ape bins and SSL things
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        if: ${{ steps.release-exists.outputs.RESULT != 'true' }}
         run: bash ./.github/scripts/setup
+
       - name: build Cosmo
         run: bash ./.github/scripts/cosmo
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        if: ${{ steps.release-exists.outputs.RESULT != 'true' }}
+
       - name: build ${{ matrix.result }}
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        if: ${{ steps.release-exists.outputs.RESULT != 'true' }}
         env:
           COLLECTION: ${{ matrix.result }}
         run: bash ./.github/scripts/collectbuild ${{ matrix.result }}
+
       - name: collect into zip
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        if: ${{ steps.release-exists.outputs.RESULT != 'true' }}
         env:
           ZFILENAME: ${{ matrix.result }}
         run: bash ./.github/scripts/collectzip
+
       - name: Upload binaries to release
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+        if: ${{ steps.release-exists.outputs.RESULT != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.get-tag.outputs.TAG }}"
