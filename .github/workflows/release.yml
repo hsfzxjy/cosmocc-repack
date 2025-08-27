@@ -50,7 +50,7 @@ jobs:
         run: |
           LAST_HEAD=HEAD
           if [ -f o/.HEAD ]; then
-            LAST_HEAD=$(echo o/.HEAD)
+            LAST_HEAD=$(cat o/.HEAD)
           fi
           echo HEAD: $(git rev-parse HEAD)
           echo LAST_HEAD: "$LAST_HEAD"
@@ -84,7 +84,7 @@ jobs:
           path: |
             superconfigure/cosmopolitan/.cosmocc
             superconfigure/cosmopolitan/o
-          key: cosmocc-build-artifacts
+          key: ${{ steps.cache.outputs.cache-primary-key }}
 
       - name: upload binaries to release
         uses: softprops/action-gh-release@v2
