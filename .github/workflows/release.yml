@@ -14,31 +14,22 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Checkout the repository
+      - name: checkout the repository
         uses: actions/checkout@master
+
       - name: setup repo
         run: bash ./.github/scripts/setup-repo
-      - name: Get tag
+
+      - name: get tag
         id: get-tag
         run: |
           echo "TAG=$(bash .github/scripts/format-tag cosmo)" >> "$GITHUB_OUTPUT"
-          cd ../..
-      - name: Check release file exists
-        id: check-release-file-exists
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          RESULT=false
-          if gh release view "${{ steps.get-tag.outputs.TAG }}"; then
-            RESULT=`gh release view "${{ steps.get-tag.outputs.TAG }}" --json assets --jq '.assets|map(.name)|any(.=="cosmocc.zip")'`
-          fi
-          RESULT=false
-          echo "RESULT=${RESULT}" > "$GITHUB_OUTPUT"
+
       - name: setup ape
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
         run: |
           sudo cp -a superconfigure/cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
           sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+
       - uses: actions/cache/restore@v4
         id: cache
         with:
@@ -48,44 +39,58 @@ jobs:
           key: cosmocc-build-artifacts
           restore-keys: |
             cosmocc-build-artifacts
+
       - name: restore timestamps
         uses: hsfzxjy/git-restore-mtime-action@master
         with:
-          working-directory: 'superconfigure/cosmopolitan'            
+          working-directory: "superconfigure/cosmopolitan"
+
       - name: restore build artifacts mtime
         if: steps.cache.outputs.cache-hit == 'true'
         working-directory: superconfigure/cosmopolitan
         run: |
-          while read mtime file; do
-            [ -f "$file" ] && touch -d "@$mtime" "$file"
-          done < o/.mtimes
-      - name: build Cosmo
+          LAST_HEAD=HEAD
+          if -f o/.HEAD; then
+            LAST_HEAD=$(echo o/.HEAD)
+          fi
+          if git merge-base --is-ancestor "$LAST_HEAD" HEAD; then
+            while read mtime file; do
+              [ -f "$file" ] && touch -d "@$mtime" "$file"
+            done < o/.mtimes
+          else
+            rm o/
+          fi
+
+      - name: build cosmo
         run: bash ./.github/scripts/build-cosmo
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+
       - name: save mtimes
         working-directory: superconfigure/cosmopolitan
         run: |
-          cd superconfigure/cosmopolitan
           find o -type f -exec stat -c "%Y %n" {} \; > o/.mtimes
+          git rev-parse HEAD > o/.HEAD
+
       - name: zip
         run: |
           cd superconfigure/cosmopolitan
           find cosmocc -exec touch -d "1970-01-01 00:00+0000" -a -m {} \;
           zip -X --symlinks -r cosmocc.zip cosmocc/
-      # - uses: actions/cache/save@v4
-      #   with:
-      #     path: |
-      #       superconfigure/cosmopolitan/.cosmocc
-      #       superconfigure/cosmopolitan/o
-      #     key: cosmocc-build-artifacts
-      - name: Upload binaries to release
-        if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
+
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            superconfigure/cosmopolitan/.cosmocc
+            superconfigure/cosmopolitan/o
+          key: cosmocc-build-artifacts
+
+      - name: upload binaries to release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "${{ steps.get-tag.outputs.TAG }}"
           files: "superconfigure/cosmopolitan/cosmocc.zip"
           fail_on_unmatched_files: true
           prerelease: true
+
   generate:
     if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
     runs-on: ubuntu-latest
