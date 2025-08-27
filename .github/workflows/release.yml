@@ -39,7 +39,6 @@ jobs:
         run: |
           sudo cp -a superconfigure/cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
           sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
-          sudo apt install -y git-restore-mtime
       - uses: actions/cache/restore@v4
         id: cache
         with:
@@ -49,19 +48,21 @@ jobs:
           key: cosmocc-build-artifacts
           restore-keys: |
             cosmocc-build-artifacts
-      - if: steps.cache.outputs.cache-hit == 'true'
+      - name: restore timestamps
+        uses: hsfzxjy/git-restore-mtime-action@master
+        with:
+          working-directory: 'superconfigure/cosmopolitan'            
+      - name: restore build artifacts mtime
+        if: steps.cache.outputs.cache-hit == 'true'
         working-directory: superconfigure/cosmopolitan
         run: |
-          stat README.md
-          git restore-mtime --verbose
-          stat README.md
           while read mtime file; do
             [ -f "$file" ] && touch -d "@$mtime" "$file"
           done < o/.mtimes
       - name: build Cosmo
         run: bash ./.github/scripts/build-cosmo
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
-      - name: Save mtimes
+      - name: save mtimes
         working-directory: superconfigure/cosmopolitan
         run: |
           cd superconfigure/cosmopolitan
