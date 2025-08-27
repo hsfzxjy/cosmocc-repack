@@ -49,9 +49,11 @@ jobs:
         working-directory: superconfigure/cosmopolitan
         run: |
           LAST_HEAD=HEAD
-          if -f o/.HEAD; then
+          if [ -f o/.HEAD ]; then
             LAST_HEAD=$(echo o/.HEAD)
           fi
+          echo HEAD: $(git rev-parse HEAD)
+          echo LAST_HEAD: "$LAST_HEAD"
           if git merge-base --is-ancestor "$LAST_HEAD" HEAD; then
             while read mtime file; do
               [ -f "$file" ] && touch -d "@$mtime" "$file"
@@ -61,6 +63,8 @@ jobs:
           fi
 
       - name: build cosmo
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: bash ./.github/scripts/build-cosmo
 
       - name: save mtimes
