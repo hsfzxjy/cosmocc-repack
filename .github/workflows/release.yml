@@ -50,34 +50,33 @@ jobs:
           restore-keys: |
             cosmocc-build-artifacts
       - if: steps.cache.outputs.cache-hit == 'true'
+        working-directory: superconfigure/cosmopolitan
         run: |
-          (
-            cd superconfigure/cosmopolitan
-            git restore-mtime
-            while read mtime file; do
-              [ -f "$file" ] && touch -d "@$mtime" "$file"
-            done < o/.mtimes
-          )
+          stat README.md
+          git restore-mtime --verbose
+          stat README.md
+          while read mtime file; do
+            [ -f "$file" ] && touch -d "@$mtime" "$file"
+          done < o/.mtimes
       - name: build Cosmo
         run: bash ./.github/scripts/build-cosmo
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
       - name: Save mtimes
+        working-directory: superconfigure/cosmopolitan
         run: |
-          (
-            cd superconfigure/cosmopolitan
-            find o -type f -exec stat -c "%Y %n" {} \; > o/.mtimes
-          )
+          cd superconfigure/cosmopolitan
+          find o -type f -exec stat -c "%Y %n" {} \; > o/.mtimes
       - name: zip
         run: |
           cd superconfigure/cosmopolitan
           find cosmocc -exec touch -d "1970-01-01 00:00+0000" -a -m {} \;
           zip -X --symlinks -r cosmocc.zip cosmocc/
-      - uses: actions/cache/save@v4
-        with:
-          path: |
-            superconfigure/cosmopolitan/.cosmocc
-            superconfigure/cosmopolitan/o
-          key: cosmocc-build-artifacts
+      # - uses: actions/cache/save@v4
+      #   with:
+      #     path: |
+      #       superconfigure/cosmopolitan/.cosmocc
+      #       superconfigure/cosmopolitan/o
+      #     key: cosmocc-build-artifacts
       - name: Upload binaries to release
         if: ${{ steps.check-release-file-exists.outputs.RESULT != 'true' }}
         uses: softprops/action-gh-release@v2
