@@ -35,9 +35,9 @@ jobs:
           path: |
             superconfigure/cosmopolitan/.cosmocc
             superconfigure/cosmopolitan/o
-          key: cosmocc-build-artifacts
+          key: artifacts-${{ steps.get-tag.outputs.TAG }}
           restore-keys: |
-            cosmocc-build-artifacts
+            artifacts-cosmocc_
 
       - name: restore timestamps
         uses: hsfzxjy/git-restore-mtime-action@master
