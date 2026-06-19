@@ -1,0 +1,30 @@
+#!/bin/sh
+set -eux
+
+source configs/default
+
+if [ -z ${GITHUB_ACTIONS+x} ]; then
+  # we are not on GA
+  if [ $(nproc) -gt 2 ]; then
+    numproc=$(($(nproc) - 2))
+  else
+    numproc=1
+  fi
+else
+  # we are on GA
+  numproc=2
+fi
+
+bash tool/cosmoup/package.sh cosmoup
+find cosmoup -exec touch -d "1970-01-01 00:00+0000" -a -m {} \;
+
+cd cosmoup
+for d in $(find . -maxdepth 1 -type d); do
+  if [ "$d" = "." ]; then
+    continue
+  fi
+  cd ${d}
+  zip -X --symlinks -r ${d}.zip .
+  mv ${d}.zip ..
+  cd ..
+done

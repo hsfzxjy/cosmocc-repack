@@ -7,6 +7,90 @@ on:
 
 name: Handle Release
 jobs:
+  build-cosmoup:
+    if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release-up]]') }}"
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout the repository
+        uses: actions/checkout@master
+
+      - name: setup repo
+        run: bash ./.github/scripts/setup-repo
+
+      - name: get tag
+        id: get-tag
+        run: |
+          echo "TAG=$(bash .github/scripts/format-tag cosmo)" >> "$GITHUB_OUTPUT"
+
+      - name: setup ape
+        run: |
+          sudo cp -a superconfigure/cosmopolitan/build/bootstrap/ape.elf /usr/bin/ape
+          sudo sh -c "echo ':APE:M::MZqFpD::/usr/bin/ape:' >/proc/sys/fs/binfmt_misc/register"
+
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: |
+            superconfigure/cosmopolitan/.cosmocc
+            superconfigure/cosmopolitan/o
+          key: artifacts-cosmoup-${{ steps.get-tag.outputs.TAG }}
+          restore-keys: |
+            artifacts-cosmocc_
+
+      - name: restore timestamps
+        uses: hsfzxjy/git-restore-mtime-action@master
+        with:
+          working-directory: "superconfigure/cosmopolitan"
+
+      - name: restore build artifacts mtime
+        if: steps.cache.outputs.cache-hit == 'true'
+        working-directory: superconfigure/cosmopolitan
+        run: |
+          LAST_HEAD=HEAD
+          if [ -f o/.HEAD ]; then
+            LAST_HEAD=$(cat o/.HEAD)
+          fi
+          echo HEAD: $(git rev-parse HEAD)
+          echo LAST_HEAD: "$LAST_HEAD"
+          if git merge-base --is-ancestor "$LAST_HEAD" HEAD; then
+            while read mtime file; do
+              [ -f "$file" ] && touch -d "@$mtime" "$file"
+            done < o/.mtimes
+          else
+            rm o/
+          fi
+
+      - name: build cosmoup
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: bash ./.github/scripts/build-cosmoup
+
+      - name: save mtimes
+        working-directory: superconfigure/cosmopolitan
+        run: |
+          find o -type f -exec stat -c "%Y %n" {} \; > o/.mtimes
+          git rev-parse HEAD > o/.HEAD
+
+      - uses: actions/cache/save@v4
+        with:
+          path: |
+            superconfigure/cosmopolitan/.cosmocc
+            superconfigure/cosmopolitan/o
+          key: ${{ steps.cache.outputs.cache-primary-key }}
+
+      - name: upload binaries to release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: "${{ steps.get-tag.outputs.TAG }}"
+          files: |
+            superconfigure/cosmopolitan/cosmoup/*.zip
+            superconfigure/cosmopolitan/cosmoup/*.cosmoup
+          fail_on_unmatched_files: true
+          prerelease: true
+
+  # Deprecated. Use build-cosmoup instead.
   build-cosmocc:
     if: "${{ ( github.event_name != 'push' ) || startsWith(github.event.head_commit.message, '[[release]]') }}"
     runs-on: ubuntu-latest
