@@ -1,4 +1,4 @@
 SC_REF=z0.0.60
-COSMO_REF=4.0.2-99-ge675aec98
+COSMO_REF=4.0.2-100-g55ef3bf9b
 
 TOOLS_TAG=superconfigure_z0.0.60_4.0.2-29-g1954c7872
